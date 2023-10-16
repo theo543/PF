@@ -1,3 +1,17 @@
+myInt = 31415926535897932384626433832795028841971693993751058209749445923
+double :: Integer -> Integer
+double x = x+x
+triple :: Integer -> Integer
+triple x = x+x+x
+maxim :: Integer -> Integer -> Integer
+maxim x y =
+    if (x > y)
+        then x
+        else y
+maxim3 :: Integer -> Integer -> Integer -> Integer
+maxim3 x y z =
+    maxim x (maxim y z)
+
 sumsqrt :: Num a => a -> a -> a
 sumsqrt x y = x * x + y * y
 
