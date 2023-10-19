@@ -96,15 +96,16 @@ permutations [] = []
 permutations (x:xs) = permutations' [] x xs 
 -}
 
-permutations' :: a -> [a] -> [[a]]
-permutations' elem sublist = let subperms = permutations sublist in
+permutations' :: (a, [a]) -> [[a]]
+permutations' (elem, sublist) = let subperms = permutations sublist in
                            map (elem :) subperms
 
 permutations :: [a] -> [[a]]
 permutations [] = []
 permutations [x] = [[x]]
+-- for each index, find the permutations which start with that element using helper function, concat the [[[a]]] into [[a]]
 permutations l = let splits = [(l !! (x - 1), take (x-1) l ++ drop x l) | x <- [1..length l]] in
-                splits >>= uncurry permutations'
+                 concatMap permutations' splits
 
 -- for testing speed
 main = (readLn :: IO Int) >>= (\len -> print . show . length . permutations $ [1..len])
