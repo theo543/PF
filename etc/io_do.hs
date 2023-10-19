@@ -1,6 +1,7 @@
 import Control.Monad (when)
 main = do
-    nr :: Int <- readLn
-    let str :: String = "You said: " ++ show nr
-    print str
-    when (even nr) main
+    x :: Int <- readLn
+    print $ "You said: " ++ show x
+    y :: Int <- readLn
+    print $ "You said: " ++ show x ++ " and " ++ show y
+    when (even x || even y) main
