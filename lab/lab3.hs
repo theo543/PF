@@ -1,4 +1,5 @@
 import Data.Char (isDigit, digitToInt)
+import Debug.Trace (trace)
 
 palindrome :: Eq a => [a] -> Bool
 palindrome l = l == reverse l
@@ -94,3 +95,16 @@ permutations :: [a] -> [[a]]
 permutations [] = []
 permutations (x:xs) = permutations' [] x xs 
 -}
+
+permutations' :: a -> [a] -> [[a]]
+permutations' elem sublist = let subperms = permutations sublist in
+                           map (elem :) subperms
+
+permutations :: [a] -> [[a]]
+permutations [] = []
+permutations [x] = [[x]]
+permutations l = let splits = [(l !! (x - 1), take (x-1) l ++ drop x l) | x <- [1..length l]] in
+                splits >>= uncurry permutations'
+
+-- for testing speed
+main = (readLn :: IO Int) >>= (\len -> print . show . length . permutations $ [1..len])
