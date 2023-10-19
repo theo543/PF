@@ -1,4 +1,4 @@
-fs l = map (+) l
-apply l = map (\(x, f) -> f x) (zip l (fs l))
+fs = map (+)
+apply l = zipWith ($) (fs l) l
 
 main = print (apply [1,2,3])
