@@ -62,8 +62,11 @@ myElem elem = myor . mapFoldr (== elem)
 
 -- 10.
 
-myUnzip' :: (a, b) -> ([a], [b]) -> ([a], [b])
-myUnzip' (a, b) (ax, bx) = (a : ax, b : bx)
+mySwap :: (a, b) -> (b, a)
+mySwap (a, b) = (b, a)
+
+myUnzip' :: [(a, b)] -> [a]
+myUnzip' = foldr (\(a, _) b -> a : b) []
 
 myUnzip :: [(a, b)] -> ([a], [b])
-myUnzip = foldr myUnzip' ([], [])
+myUnzip l = (myUnzip' l, myUnzip' $ mapFoldr mySwap l)
