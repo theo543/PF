@@ -1,3 +1,5 @@
+import Text.Printf
+
 data Orientation = Orientation { xMovement :: Int, yMovement :: Int }
     deriving Show
 
@@ -10,7 +12,7 @@ data Turtle = Turtle { xPosition :: Int, yPosition :: Int, orientationIterator :
 instance Show Turtle where
     show :: Turtle -> String
     show (Turtle xPos yPos (orientation:_)) =
-        "Turtle {xPosition " ++ show xPos ++ ", yPosition " ++ show yPos ++ ", (head orientationIterator) " ++ show orientation ++ "}"
+        printf "Turtle {xPosition = %d, yPosition = %d, orientationIterator = [%s, ...]}" xPos yPos (show orientation)
 
 startingTurtle :: Turtle
 startingTurtle = Turtle 0 0 orientations
