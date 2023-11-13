@@ -1,4 +1,5 @@
 import Text.Printf ( printf )
+import Data.Array ( Array, (!), listArray )
 
 data Expr = Const Int -- integer constant
           | Expr :+: Expr -- addition
@@ -109,9 +110,27 @@ fromList = foldr (\(key, val) tree -> insert key val tree) Empty
 printTree :: IntSearchTree value -> String
 printTree Empty = "()"
 printTree (BNode Empty key _ Empty) = printf "(%s)" $ show key
-printTree (BNode left@BNode{} key _ Empty) = printf "(%s) %s" (printTree left) (show key)
-printTree (BNode Empty key _ right@BNode{}) = printf "%s (%s)" (show key) (printTree right)
-printTree (BNode left@BNode{} key _ right@BNode{}) = printf "(%s) %s (%s)" (printTree left) (show key) (printTree right)
+printTree (BNode left@BNode{} key _ Empty) = printf "(%s %s)" (printTree left) (show key)
+printTree (BNode Empty key _ right@BNode{}) = printf "(%s %s)" (show key) (printTree right)
+printTree (BNode left@BNode{} key _ right@BNode{}) = printf "(%s %s %s)" (printTree left) (show key) (printTree right)
 
--- balance :: IntSearchTree value -> IntSearchTree value
--- balance = undefined
+balance :: IntSearchTree value -> IntSearchTree value
+balance Empty = Empty
+balance tree = let
+  sortedList = toList tree
+  lastIndex = length sortedList - 1
+  sortedArray = listArray (0, lastIndex) sortedList
+  in
+  balance' 0 lastIndex sortedArray
+
+balance' :: Int -> Int -> Array Int (Int, value) -> IntSearchTree value
+balance' st en _ | st > en = Empty
+balance' st en arr | st == en = BNode Empty key val Empty
+  where
+    (key, val') = arr ! st
+    val = Just val'
+balance' st en arr = BNode (balance' st (center - 1) arr) key val (balance' (center + 1) en arr)
+  where
+    center = st + (en - st) `div` 2
+    (key, val') = arr ! center
+    val = Just val'
