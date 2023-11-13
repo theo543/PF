@@ -1,3 +1,5 @@
+import Text.Printf ( printf )
+
 data Expr = Const Int -- integer constant
           | Expr :+: Expr -- addition
           | Expr :*: Expr -- multiplication
@@ -15,7 +17,9 @@ instance Show Expr where
   show (e1 :*: e2) = "(" ++ show e1 ++ " * "++ show e2 ++ ")"
 
 evalExp :: Expr -> Int
-evalExp = undefined
+evalExp (Const x) = x
+evalExp (e1 :+: e2) = evalExp e1 + evalExp e2
+evalExp (e1 :*: e2) = evalExp e1 * evalExp e2
 
 exp1 = (Const 2 :*: Const 3) :+: (Const 0 :*: Const 5)
 exp2 = Const 2 :*: (Const 3 :+: Const 4)
@@ -27,7 +31,14 @@ test13 = evalExp exp3 == 13
 test14 = evalExp exp4 == 16
 
 evalArb :: Tree -> Int
-evalArb = undefined
+evalArb (Lf x) = x
+evalArb (Node op a b) = opfn (evalArb a) (evalArb b)
+  where
+    getopfn :: Operation -> (Int -> Int -> Int)
+    getopfn Add = (+)
+    getopfn Mult = (*)
+    opfn :: Int -> Int -> Int
+    opfn = getopfn op
 
 
 arb1 = Node Add (Node Mult (Lf 2) (Lf 3)) (Node Mult (Lf 0) (Lf 5))
@@ -42,7 +53,9 @@ test24 = evalArb arb4 == 16
 
 
 expToArb :: Expr -> Tree
-expToArb = undefined
+expToArb (Const x) = Lf x
+expToArb (x :+: y) = Node Add (expToArb x) (expToArb y)
+expToArb (x :*: y) = Node Mult (expToArb x) (expToArb y)
 
 
 data IntSearchTree value
@@ -52,30 +65,53 @@ data IntSearchTree value
       Int                       -- cheia elementului
       (Maybe value)             -- valoarea elementului
       (IntSearchTree value)     -- elemente cu cheia mai mare
+  deriving Show
 
-lookup :: Int -> IntSearchTree value -> Maybe value
-lookup = undefined
+bstlookup :: Int -> IntSearchTree value -> Maybe value
+bstlookup x Empty = Nothing
+bstlookup x (BNode _ key value@(Just _) _) | key == x = value
+bstlookup x (BNode _ key Nothing _) | key == x = Nothing
+bstlookup x (BNode left key _ _) | x < key = bstlookup x left
+bstlookup x (BNode _ key _ right) | x > key = bstlookup x right
 
 keys ::  IntSearchTree value -> [Int]
-keys = undefined
+keys Empty = []
+keys (BNode left key Nothing right) = keys left ++ keys right
+keys (BNode left key (Just _) right) = key : (keys left ++ keys right)
 
 values :: IntSearchTree value -> [value]
-values = undefined
+values Empty = []
+values (BNode left _ Nothing right) = values left ++ values right
+values (BNode left _ (Just x) right) = x : (values left ++ values right)
 
 insert :: Int -> value -> IntSearchTree value -> IntSearchTree value
-insert = undefined
+insert newk newv Empty = BNode Empty newk (Just newv) Empty
+insert newk newv (BNode left key val right)
+  | newk == key = BNode left key (Just newv) right
+  | newk < key = BNode (insert newk newv left) key val right
+  | newk > key = BNode left key val (insert newk newv right)
 
 delete :: Int -> IntSearchTree value -> IntSearchTree value
-delete = undefined
+delete _ Empty = Empty
+delete del (BNode left key val right)
+  | key == del = BNode left key Nothing right
+  | del < key = BNode (delete del left) key val right
+  | del > key = BNode left key val (delete del right)
 
 toList :: IntSearchTree value -> [(Int, value)]
-toList = undefined
+toList Empty = []
+toList (BNode left key (Just value) right) = toList left ++ [(key, value)] ++ toList right
+toList (BNode left _ Nothing right) = toList left ++ toList right
 
 fromList :: [(Int,value)] -> IntSearchTree value
-fromList = undefined
+fromList = foldr (\(key, val) tree -> insert key val tree) Empty
 
 printTree :: IntSearchTree value -> String
-printTree = undefined
+printTree Empty = "()"
+printTree (BNode Empty key _ Empty) = printf "(%s)" $ show key
+printTree (BNode left@BNode{} key _ Empty) = printf "(%s) %s" (printTree left) (show key)
+printTree (BNode Empty key _ right@BNode{}) = printf "%s (%s)" (show key) (printTree right)
+printTree (BNode left@BNode{} key _ right@BNode{}) = printf "(%s) %s (%s)" (printTree left) (show key) (printTree right)
 
 -- balance :: IntSearchTree value -> IntSearchTree value
 -- balance = undefined
