@@ -114,3 +114,16 @@ class GeoOps g where
 -- ghci> pi
 -- 3.141592653589793
 
+instance GeoOps Geo where
+    perimeter :: Floating a => Geo a -> a
+    perimeter (Square l) = l * 4
+    perimeter (Rectangle l w) = l * 2 + w * 2
+    perimeter (Circle r) = 2 * pi * r
+    area :: Floating a => Geo a -> a
+    area (Square l) = l * l
+    area (Rectangle l w) = l * w
+    area (Circle r) = pi * r * r
+
+instance (Floating a, Eq a) => Eq (Geo a) where
+    (==) :: (Floating a, Eq a) => Geo a -> Geo a -> Bool
+    (==) a b = perimeter a == perimeter b
