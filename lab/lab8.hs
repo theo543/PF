@@ -41,6 +41,30 @@ data SearchTree key value
       (Maybe value)          -- valoarea elementului
       (SearchTree key value) -- elemente cu cheia mai mare
 
+instance Collection SearchTree where
+    empty :: SearchTree key value
+    empty = Empty
+    singleton :: key -> value -> SearchTree key value
+    singleton key val = BNode Empty key (Just val) Empty
+    insert :: Ord key => key -> value -> SearchTree key value -> SearchTree key value
+    insert key val Empty = singleton key val
+    insert key val (BNode l key' _ r) | key == key' = BNode l key (Just val) r
+    insert key val (BNode l key' val' r) | key < key' = BNode (insert key val l) key' val' r
+    insert key val (BNode l key' val' r) | key > key' = BNode l key' val' (insert key val r)
+    clookup :: Ord key => key -> SearchTree key value -> Maybe value
+    clookup _ Empty = Nothing
+    clookup key (BNode _ key' val _) | key == key' = val
+    clookup key (BNode l key' _ _) | key < key' = clookup key l
+    clookup key (BNode _ key' _ r) | key > key' = clookup key r
+    delete :: Ord key => key -> SearchTree key value -> SearchTree key value
+    delete _ Empty = Empty
+    delete key (BNode l key' _ r) | key == key' = BNode l key' Nothing r
+    delete key (BNode l key' val' r) | key < key' = BNode (delete key l) key' val' r
+    delete key (BNode l key' val' r) | key > key' = BNode l key' val' (delete key r)
+    toList :: SearchTree key value -> [(key, value)]
+    toList Empty = []
+    toList (BNode l key Nothing r) = toList l ++ toList r
+    toList (BNode l key (Just val) r) = toList l ++ (key, val) : toList r
 
 data Punct = Pt [Int]
 
