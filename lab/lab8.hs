@@ -1,3 +1,5 @@
+import Data.List (intercalate)
+
 class Collection c where
   empty :: c key value
   singleton :: key -> value -> c key value
@@ -74,16 +76,34 @@ data Arb = Vid | F Int | N Arb Arb
 class ToFromArb a where
             toArb :: a -> Arb
             fromArb :: Arb -> a
+
+instance Show Punct where
+    show (Pt p) = "(" ++ intercalate ", " (map show p) ++ ")"
+
 -- Pt [1,2,3]
 -- (1, 2, 3)
 
 -- Pt []
 -- ()
 
+instance ToFromArb Punct where
+    toArb (Pt p) = toArb' p
+        where
+            toArb' [] = Vid
+            toArb' (x:xs) = N (F x) (toArb' xs)
+    fromArb :: Arb -> Punct
+    fromArb = Pt . fromArb'
+        where
+            fromArb' :: Arb -> [Int]
+            fromArb' Vid = []
+            fromArb' (F x) = [x]
+            fromArb' (N a1 a2) = fromArb' a1 ++ fromArb' a2
+
 -- toArb (Pt [1,2,3])
 -- N (F 1) (N (F 2) (N (F 3) Vid))
 -- fromArb $ N (F 1) (N (F 2) (N (F 3) Vid)) :: Punct
 --  (1,2,3)
+
 data Geo a = Square a | Rectangle a a | Circle a
     deriving Show
 
