@@ -42,19 +42,3 @@ test_sumval = sumval extree == 13
 
 test_nrFrunze :: Bool
 test_nrFrunze = nrFrunze extree == 2
-
-class Scalar a where
-  zero :: a
-  one :: a
-  adds :: a -> a -> a
-  mult :: a -> a -> a
-  negates :: a -> a
-  recips :: a -> a
-
-class (Scalar a) => Vector v a where
-  zerov :: v a
-  onev :: v a
-  addv :: v a -> v a -> v a -- adunare vector
-  smult :: a -> v a -> v a  -- inmultire cu scalare
-  negatev :: v a -> v a -- negare vector
-
