@@ -6,7 +6,7 @@ extree :: Tree
 extree = Node 4 (Node 5 Empty Empty Empty)
                 (Node 3 Empty Empty (Node 1 Empty Empty Empty)) Empty
 
--- 1. Instant, iat, i clasa urm ̆atoare pentru tipul Tree.
+-- 1. Instanțiați clasa următoare pentru tipul Tree.
 
 class ArbInfo t where
   level :: t -> Int -- intoarce inaltimea arborelui; pt un arbore vid
