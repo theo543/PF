@@ -68,12 +68,12 @@ data IntSearchTree value
       (IntSearchTree value)     -- elemente cu cheia mai mare
   deriving Show
 
-bstlookup :: Int -> IntSearchTree value -> Maybe value
-bstlookup x Empty = Nothing
-bstlookup x (BNode _ key value@(Just _) _) | key == x = value
-bstlookup x (BNode _ key Nothing _) | key == x = Nothing
-bstlookup x (BNode left key _ _) | x < key = bstlookup x left
-bstlookup x (BNode _ key _ right) | x > key = bstlookup x right
+lookup' :: Int -> IntSearchTree value -> Maybe value
+lookup' x Empty = Nothing
+lookup' x (BNode _ key value@(Just _) _) | key == x = value
+lookup' x (BNode _ key Nothing _) | key == x = Nothing
+lookup' x (BNode left key _ _) | x < key = lookup' x left
+lookup' x (BNode _ key _ right) | x > key = lookup' x right
 
 keys ::  IntSearchTree value -> [Int]
 keys Empty = []

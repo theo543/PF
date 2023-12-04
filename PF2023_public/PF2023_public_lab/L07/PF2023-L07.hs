@@ -53,8 +53,8 @@ data IntSearchTree value
       (Maybe value)             -- valoarea elementului
       (IntSearchTree value)     -- elemente cu cheia mai mare
   
-lookup :: Int -> IntSearchTree value -> Maybe value
-lookup = undefined
+lookup' :: Int -> IntSearchTree value -> Maybe value
+lookup' = undefined
 
 keys ::  IntSearchTree value -> [Int]
 keys = undefined
