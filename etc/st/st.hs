@@ -80,10 +80,10 @@ main = do
     (args, isUnsafeEnabled) <- case args of
             "--lazy-io" : args -> putStrStderr "Enabling unsafe lazy IO. Please note that timing cannot be split into parsing and calculation with lazy IO." >> return (args, True)
             args -> return (args, False)
-    let (gmFun, gmFunName) = case args of
-            ["--pure"] -> (geometricMeanPure, "geometricMeanPure (implemented in pure Haskell)")
-            l | l `elem` [[], ["--st"]] -> (geometricMean, "geometricMean (implemented in ST)")
-            _ -> error "usage: st (--lazy-io)? [--pure|--st]"
+    (gmFun, gmFunName) <- case args of
+            ["--pure"] -> return (geometricMeanPure, "geometricMeanPure (implemented in pure Haskell)")
+            l | l `elem` [[], ["--st"]] -> return (geometricMean, "geometricMean (implemented in ST)")
+            _ -> putStrStderr "usage: st (--lazy-io)? [--pure|--st]" >> exitFailure
     doubles <- readDoublesFromStdin isUnsafeEnabled
     tic' <- getCurrentTime
     print $ gmFun doubles
