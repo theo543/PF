@@ -8,6 +8,7 @@ import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import System.IO (stderr, hPutStrLn)
+import GHC.List (foldl')
 
 -- I know this could be done without mutable state, but I wanted to try out ST.
 geometricMean :: (Floating a) => [a] -> a
@@ -32,7 +33,10 @@ geometricMean list = runST $ do
     return $ exp finalAnswer
 
 geometricMeanPure :: (Floating a) => [a] -> a
-geometricMeanPure list = exp $ sum (map log list) / fromIntegral (length list)
+geometricMeanPure list = let
+    foldStep (sum, len) x = (sum + log x, len + 1)
+    (sum, len) = foldl' foldStep (0, 0) list
+    in exp (sum / fromIntegral len)
 
 getMaybeLine :: IO (Maybe String)
 getMaybeLine = fmap handleErr (try getLine :: IO (Either IOError String))
