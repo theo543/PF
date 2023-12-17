@@ -26,7 +26,10 @@ while true; do
 	./st --lazy-io --pure < doubles_large.txt
 	printf "\nlarge test case, lazy IO, ST\n"
 	./st --lazy-io --st < doubles_large.txt
-	read -p "Press enter to repeat or ctrl-c to exit"
+	read -p "Press enter to repeat or type 'exit' to exit: " userInput
+	if [ "$$userInput" == "exit" ]; then
+		break
+	fi
 done
 endef
 
