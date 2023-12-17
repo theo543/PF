@@ -8,6 +8,7 @@ import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import System.IO (stderr, hPutStrLn)
+import GHC.IO (unsafeInterleaveIO)
 import GHC.List (foldl')
 import Control.Monad (when)
 
@@ -55,12 +56,19 @@ getMaybeLine = fmap handleErr (try getLine :: IO (Either IOError String))
         handleErr (Left e) = throw e
         handleErr (Right str) = Just str
 
-readDoublesFromStdin :: IO [Double]
-readDoublesFromStdin = do
-    line <- getMaybeLine
-    case line >>= readMaybe of
-        Nothing -> return []
-        Just double -> (double :) <$> readDoublesFromStdin
+-- set bool to True to use lazy IO to not OOM on large inputs
+-- warning: lazy IO is not referentially transparent
+-- probably using Data.Vector would be a better idea to solve the OOM problem
+-- but I have no idea how to use cabal to install it, and I wanted to try out lazy IO anyway
+readDoublesFromStdin :: Bool -> IO [Double]
+readDoublesFromStdin shouldUseLazyIO =
+    let possiblyUnsafe = if shouldUseLazyIO then unsafeInterleaveIO else id
+        readAction = possiblyUnsafe $ do
+            line <- getMaybeLine
+            case line >>= readMaybe of
+                Nothing -> return []
+                Just double -> (double :) <$> readAction
+    in readAction
 
 putStrStderr :: String -> IO ()
 putStrStderr = hPutStrLn stderr
@@ -69,14 +77,16 @@ main :: IO ()
 main = do
     tic <- getCurrentTime
     args <- getArgs
-    doubles <- readDoublesFromStdin
-    tic' <- getCurrentTime
+    (args, isUnsafeEnabled) <- case args of
+            "--lazy-io" : args -> putStrStderr "Enabling unsafe lazy IO. Please note that timing cannot be split into parsing and calculation with lazy IO." >> return (args, True)
+            args -> return (args, False)
     let (gmFun, gmFunName) = case args of
             ["--pure"] -> (geometricMeanPure, "geometricMeanPure (implemented in pure Haskell)")
             l | l `elem` [[], ["--st"]] -> (geometricMean, "geometricMean (implemented in ST)")
-            _ -> error "usage: st [--pure|--st]"
-    let gm = gmFun doubles
-    print gm
+            _ -> error "usage: st (--lazy-io)? [--pure|--st]"
+    doubles <- readDoublesFromStdin isUnsafeEnabled
+    tic' <- getCurrentTime
+    print $ gmFun doubles
     toc <- getCurrentTime
     let totalElapsed = diffUTCTime toc tic
     let elapsed = diffUTCTime toc tic'
