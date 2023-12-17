@@ -9,6 +9,15 @@ import System.Exit (exitFailure)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import System.IO (stderr, hPutStrLn)
 import GHC.List (foldl')
+import Control.Monad (when)
+
+data IterationCommand = Continue | Break
+    deriving (Eq)
+
+while :: Monad m => m IterationCommand -> m ()
+while action = do
+    keepLooping <- (== Continue) <$> action
+    when keepLooping $ while action
 
 -- I know this could be done without mutable state, but I wanted to try out ST.
 geometricMean :: (Floating a) => [a] -> a
@@ -16,17 +25,18 @@ geometricMean list = runST $ do
     len :: STRef s Int <- newSTRef 0
     product :: STRef s a <- newSTRef 0
     iterator :: STRef s [a] <- newSTRef list
-    let loopIteration :: ST s ()
-        loopIteration = do
-            currentIterator <- readSTRef iterator
-            case currentIterator of
-                [] -> return ()
-                x:xs -> do
-                    modifySTRef' len (+ 1)
-                    modifySTRef' product (+ log x)
-                    writeSTRef iterator xs
-                    loopIteration
-    loopIteration
+
+    while $ do
+        currentIterator <- readSTRef iterator
+        case currentIterator of
+            [] ->
+                return Break
+            x:xs -> do
+                modifySTRef' len (+ 1)
+                modifySTRef' product (+ log x)
+                writeSTRef iterator xs
+                return Continue
+
     finalLen <- readSTRef len
     finalProduct <- readSTRef product
     let finalAnswer = finalProduct / fromIntegral finalLen
