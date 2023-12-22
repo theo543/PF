@@ -1,0 +1,6 @@
+# VSCode
+.vscode
+
+# Haskell intermediate files
+*.hi
+*.o
