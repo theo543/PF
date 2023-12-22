@@ -1,4 +1,7 @@
-.PHONY: all doubles_files benchmark 
+.PHONY: all doubles_files benchmark clean
+
+clean:
+	rm -f st_genDoubles doubles_large.txt doubles_small.txt st
 
 all: doubles_files st
 
