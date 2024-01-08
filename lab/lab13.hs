@@ -1,3 +1,6 @@
+import Control.Monad (liftM2)
+import Control.Monad.Writer (Writer, tell, runWriter)
+import Control.Monad.Reader (Reader, reader, runReader)
 
 {- Monada Maybe este definita in GHC.Base 
 
@@ -21,39 +24,118 @@ instance Functor Maybe where
 pos :: Int -> Bool
 pos  x = if (x>=0) then True else False
 
+{-
+a) Definiți addM prin orice metodă (de exemplu, folosind șabloane).
+-}
+
 fct :: Maybe Int ->  Maybe Bool
-fct  mx =  mx  >>= (\x -> Just (pos x))
+fct x = do
+    nr <- x
+    return $ pos nr
+
+{-
+2. Vrem să definim o funcție care adună două valori de tip Maybe Int:
+
+a) Definiți addM prin orice metodă (de exemplu, folosind șabloane).
+b) Definiți addM folosind operații monadice și notația do.
+-}
 
 addM :: Maybe Int -> Maybe Int -> Maybe Int
-addM mx my = undefined
+addM = liftM2 (+)
 
+addM_do :: Maybe Int -> Maybe Int -> Maybe Int
+addM_do xM yM = do
+  x <- xM
+  y <- yM
+  return $ x + y
 
-cartesian_product xs ys = xs >>= ( \x -> (ys >>= \y-> return (x,y)))
+-- 3. Rescrieți următoarele funcții folosind notația do:
 
-prod f xs ys = [f x y | x <- xs, y<-ys]
+--cartesian_product xs ys = xs >>= ( \x -> (ys >>= \y-> return (x,y)))
+cartesian_product xs ys = do
+  x <- xs
+  y <- ys
+  return (x, y)
+
+-- prod f xs ys = [f x y | x <- xs, y<-ys]
+prod f xs ys = do
+  x <- xs
+  y <- ys
+  return $ f x y
 
 myGetLine :: IO String
+{-
 myGetLine = getChar >>= \x ->
       if x == '\n' then
           return []
       else
           myGetLine >>= \xs -> return (x:xs)
+-}
+myGetLine = do
+  x <- getChar
+  if x == '\n' then
+    return []
+  else do
+    xs <- myGetLine
+    return (x:xs)
+
+-- 4. Rescrieți următoarea funcție folosind notația cu secvențiere:
 
 prelNo noin =  sqrt noin
 
+{-
 ioNumber = do
      noin  <- readLn :: IO Float
      putStrLn $ "Intrare\n" ++ (show noin)
      let  noout = prelNo noin
      putStrLn $ "Iesire"
      print noout
+-}
+
+ioNumber = (readLn :: IO Float) >>= \noin ->
+          putStrLn ("Intrare\n" ++ (show noin)) >>
+          let noout = prelNo noin in
+          putStrLn "Iesire" >>
+          print noout
+
+{-
+5.
+a) Definiți funcțiile logIncrement și logIncrement2 din curs și testați-le.
+b) Definiți funcția logIncrementN, care generalizeaz a logIncrement2, astfel:
+-}
+
+fmtIncrement :: Int -> String
+fmtIncrement x = "increment: " ++ show x ++ "\n"
+
+logIncrement :: Int -> Writer String Int
+logIncrement x = do
+  tell $ fmtIncrement x
+  return $ x + 1
+
+logIncrementN :: Int -> Int -> Writer String Int
+logIncrementN 0 x = return x
+logIncrementN times x = logIncrement x >>= logIncrementN (times - 1)
+
+logIncrement2 :: Int -> Writer String Int
+logIncrement2 = logIncrementN 2
+
+logIncrementL :: Int -> Writer [String] Int
+logIncrementL x = do
+  tell [fmtIncrement x]
+  return $ x + 1
+
+logIncrementNL :: Int -> Int -> Writer [String] Int
+logIncrementNL 0 x = return x
+logIncrementNL times x = logIncrementL x >>= logIncrementNL (times - 1)
+
+-- 6.
 
 data Person = Person { name :: String, age :: Int }
 
 showPersonN :: Person -> String
-showPersonN = undefined
+showPersonN p = "NAME:" ++ name p
 showPersonA :: Person -> String
-showPersonA = undefined
+showPersonA p = "AGE: " ++ show (age p)
 
 {-
 showPersonN $ Person "ada" 20
@@ -63,41 +145,25 @@ showPersonA $ Person "ada" 20
 -}
 
 showPerson :: Person -> String
-showPerson = undefined 
+showPerson p = "(" ++ showPersonN p ++ ", " ++ showPersonA p ++ ")"
 
 {-
 showPerson $ Person "ada" 20
 "(NAME: ada, AGE: 20)"
 -}
 
+mshowPersonN :: Reader Person String
+mshowPersonN = fmap ("NAME: " ++) $ reader name
 
-newtype Reader env a = Reader { runReader :: env -> a }
-
-
-instance Monad (Reader env) where
-  return x = Reader (\_ -> x)
-  ma >>= k = Reader f
-    where f env = let a = runReader ma env
-                  in  runReader (k a) env
-
-
-
-instance Applicative (Reader env) where
-  pure = return
-  mf <*> ma = do
-    f <- mf
-    a <- ma
-    return (f a)       
-
-instance Functor (Reader env) where              
-  fmap f ma = pure f <*> ma    
-
-mshowPersonN ::  Reader Person String
-mshowPersonN = undefined
 mshowPersonA ::  Reader Person String
-mshowPersonA = undefined 
+mshowPersonA = fmap ("AGE: " ++) $ reader $ show . age
+
 mshowPerson ::  Reader Person String
-mshowPerson = undefined 
+mshowPerson = do
+  n <- mshowPersonN
+  a <- mshowPersonA
+  return $ "(" ++ n ++ ", " ++ a ++ ")"
+
 {-
 runReader mshowPersonN  $ Person "ada" 20
 "NAME:ada"
