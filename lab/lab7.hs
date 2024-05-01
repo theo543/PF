@@ -1,5 +1,9 @@
+{-# LANGUAGE TemplateHaskell #-}
 import Text.Printf ( printf )
 import Data.Array ( Array, (!), listArray )
+import Test.QuickCheck
+import Data.List (sort, group)
+import Data.Maybe (fromMaybe, listToMaybe)
 
 data Expr = Const Int -- integer constant
           | Expr :+: Expr -- addition
@@ -75,6 +79,35 @@ lookup' x (BNode _ key Nothing _) | key == x = Nothing
 lookup' x (BNode left key _ _) | x < key = lookup' x left
 lookup' x (BNode _ key _ right) | x > key = lookup' x right
 
+newtype AssocListUniqueKeys = AssocListUniqueKeys [(Int, Int)] deriving Show
+
+unique :: (Ord a) => [a] -> [a]
+unique = map myHead . group . sort
+  where myHead l = fromMaybe (error "Can't happen due to how group works") (listToMaybe l)
+
+instance Arbitrary AssocListUniqueKeys where
+  arbitrary :: Gen AssocListUniqueKeys
+  arbitrary = do
+    keys <- listOf1 arbitrary
+    keys <- shuffle $ unique keys
+    values <- vectorOf (length keys) arbitrary
+    return $ AssocListUniqueKeys $ zip keys values
+
+prop_keysInListAreFound :: AssocListUniqueKeys -> Property
+prop_keysInListAreFound (AssocListUniqueKeys list) =
+  let
+    tree = fromList list
+  in
+    forAll (elements list) $ \(key, value) -> lookup' key tree == Just value
+
+prop_keysNotInListAreNotFound :: AssocListUniqueKeys -> Int -> Property
+prop_keysNotInListAreNotFound (AssocListUniqueKeys list) key =
+  let
+    tree = fromList list
+  in
+    not (elem key (map fst list)) ==>
+    lookup' key tree == Nothing
+
 keys ::  IntSearchTree value -> [Int]
 keys Empty = []
 keys (BNode left key Nothing right) = keys left ++ keys right
@@ -92,12 +125,31 @@ insert newk newv (BNode left key val right)
   | newk < key = BNode (insert newk newv left) key val right
   | newk > key = BNode left key val (insert newk newv right)
 
+prop_keysInListStillFoundAfterInsert :: AssocListUniqueKeys -> Int -> Int -> Property
+prop_keysInListStillFoundAfterInsert (AssocListUniqueKeys list) key value =
+  let
+    tree = fromList list
+    newTree = insert key value tree
+  in
+    not (key `elem` keys tree) ==>
+    forAll (elements list) $ \(key', value') -> lookup' key' newTree == lookup' key' tree
+
+prop_keyFoundAfterInsert :: AssocListUniqueKeys -> Int -> Int -> Bool
+prop_keyFoundAfterInsert (AssocListUniqueKeys list) key value = lookup' key newTree == Just value
+  where
+    tree = fromList list
+    newTree = insert key value tree
+
 delete :: Int -> IntSearchTree value -> IntSearchTree value
 delete _ Empty = Empty
 delete del (BNode left key val right)
   | key == del = BNode left key Nothing right
   | del < key = BNode (delete del left) key val right
   | del > key = BNode left key val (delete del right)
+
+prop_keysNotFoundAfterDelete :: AssocListUniqueKeys -> Property
+prop_keysNotFoundAfterDelete (AssocListUniqueKeys list) = forAll (elements list) $ \(key, _) -> lookup' key (delete key tree) == Nothing
+  where tree = fromList list
 
 toList :: IntSearchTree value -> [(Int, value)]
 toList Empty = []
@@ -106,6 +158,12 @@ toList (BNode left _ Nothing right) = toList left ++ toList right
 
 fromList :: [(Int,value)] -> IntSearchTree value
 fromList = foldr (\(key, val) tree -> insert key val tree) Empty
+
+prop_roundtripSortsList :: AssocListUniqueKeys -> Bool
+prop_roundtripSortsList (AssocListUniqueKeys list) = sort list == toList (fromList list)
+
+prop_roundTripRemovesDuplicates :: NonEmptyList (Int, Int) -> Bool
+prop_roundTripRemovesDuplicates (NonEmpty list) = length (unique $ map fst list) == length (toList $ fromList list)
 
 printTree :: IntSearchTree value -> String
 printTree Empty = "()"
@@ -116,12 +174,11 @@ printTree (BNode left@BNode{} key _ right@BNode{}) = printf "(%s %s %s)" (printT
 
 balance :: IntSearchTree value -> IntSearchTree value
 balance Empty = Empty
-balance tree = let
-  sortedList = toList tree
-  lastIndex = length sortedList - 1
-  sortedArray = listArray (0, lastIndex) sortedList
-  in
-  balance' 0 lastIndex sortedArray
+balance tree = balance' 0 lastIndex sortedArray
+  where
+    sortedList = toList tree
+    lastIndex = length sortedList - 1
+    sortedArray = listArray (0, lastIndex) sortedList
 
 balance' :: Int -> Int -> Array Int (Int, value) -> IntSearchTree value
 balance' st en _ | st > en = Empty
@@ -134,3 +191,18 @@ balance' st en arr = BNode (balance' st (center - 1) arr) key val (balance' (cen
     center = st + (en - st) `div` 2
     (key, val') = arr ! center
     val = Just val'
+
+prop_balancePreservesData :: AssocListUniqueKeys -> Bool
+prop_balancePreservesData (AssocListUniqueKeys list) = sort (keys tree') == sort (keys tree) && sort (values tree') == sort (values tree) && toList tree' == toList tree
+  where tree = fromList list
+        tree' = balance tree
+
+return [] -- TH weirdness
+
+main :: IO ()
+main = do
+  result <- $quickCheckAll
+  if result then
+    putStrLn "All tests passed"
+  else
+    putStrLn "\n\n\x1b[31mSome tests failed!!\x1b[0m\n\n"

@@ -4,3 +4,6 @@
 # Haskell intermediate files
 *.hi
 *.o
+
+# Cabal stuff from installing QuickCheck
+.ghc.environment.*
